@@ -1,0 +1,25 @@
+# Ambientes Virtuais
+/.venv
+venv/
+env/
+*.venv
+
+# Ficheiros de Segredos (IMPORTANTE)
+# O ficheiro .env que criámos não deve ir para o GitHub!
+/.env
+
+# Ficheiros compilados do Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ficheiros de Sistema (Mac e Windows)
+.DS_Store
+Thumbs.db
+
+# Ficheiros de IDEs (Editores de Código)
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
