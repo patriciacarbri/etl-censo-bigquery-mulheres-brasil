@@ -1,0 +1,1 @@
+SELECT * FROM `basedosdados.br_ibge_censo_2022.alfabetizacao_grupo_idade_sexo_raca` WHERE sexo = "Mulheres";

@@ -4,9 +4,9 @@ venv/
 env/
 *.venv
 
-# Ficheiros de Segredos (IMPORTANTE)
-# O ficheiro .env que criámos não deve ir para o GitHub!
+# Ficheiros sensíveis (IMPORTANTE)
 /.env
+config/bq.json
 
 # Ficheiros compilados do Python
 __pycache__/
