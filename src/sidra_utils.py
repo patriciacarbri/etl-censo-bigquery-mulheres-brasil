@@ -58,7 +58,7 @@ def sidra_raw_table(
 ) -> RawSidra:
     """
     Retorna os dados BRUTOS da tabela SIDRA solicitada.
-    Padrão ajustado para:
+    Padrão para:
       - tabela 1383
       - ano 2010
       - nível territorial 6 (município)
@@ -93,7 +93,7 @@ def sidra_raw_table(
             },
         )
 
-        # Aqui passamos TODOS os argumentos obrigatórios
+        # Aqui contém os argumentos obrigatórios
         data = sidra.get_table(
             table_code=table_id,
             territorial_level=territorial_level,
@@ -114,7 +114,7 @@ def sidra_raw_table(
 
 
 def _print_sample(raw: RawSidra, sample: int = 3) -> None:
-    """Imprime amostra legível do JSON cru retornado."""
+    """Imprime amostra legível do JSON retornado."""
     print("\n=== AMOSTRA DOS DADOS BRUTOS ===")
     if isinstance(raw, list):
         print(f"[INFO] Lista com {len(raw)} itens. Mostrando primeiros {sample}:")
@@ -174,7 +174,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     print("\n=== TESTE RÁPIDO: EXTRAÇÃO BRUTA SIDRA ===")
-    print("Observação: este script NÃO faz nenhuma transformação nos dados (raw JSON).")
 
     try:
         raw = sidra_raw_table(
