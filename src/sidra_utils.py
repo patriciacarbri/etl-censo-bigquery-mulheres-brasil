@@ -1,129 +1,192 @@
 # src/sidra_utils.py
-from pathlib import Path
-import pandas as pd
+import json
+import argparse
+from typing import Any, Optional
 
 try:
-    import sidrapy as sidra
+    import sidrapy as sidra  # type: ignore
     _HAVE_SIDRA = True
 except Exception:
     _HAVE_SIDRA = False
 
 import requests
-import time
 
-def _sidra_get_table_with_requests(table_id: str, period: str = "2010", variables: str = None, geo: str = None) -> pd.DataFrame:
+RawSidra = Any
+
+
+def _sidra_get_table_with_requests(
+    table_id: str,
+    period: str = "2010",
+    variables: Optional[str] = None,
+    geo: Optional[str] = None,
+    timeout: int = 60,
+) -> RawSidra:
     """
-    Fetch SIDRA table via requests (CSV format) as fallback.
-    variables and geo can be used to narrow the query; keep simple for now.
+    Requisição direta à API SIDRA -> retorna JSON cru.
     """
+    print("\n[INFO] Usando fallback via requests (API REST SIDRA)...")
     base = "https://apisidra.ibge.gov.br/values"
     params = {
         "t": table_id,
         "v": variables or "all",
         "p": period,
-        "c": "N",  # sem comentarios
-        "formato": "json"
+        "c": "N",
+        "formato": "json",
     }
-    # If geo provided, add it (e.g., 'false' for Brasil, or 'all' etc.)
     if geo:
-        params['g'] = geo
-    resp = requests.get(base, params=params, timeout=60)
+        params["g"] = geo
+
+    print("[INFO] Endpoint:", base)
+    print("[INFO] Parâmetros:", params)
+    resp = requests.get(base, params=params, timeout=timeout)
     resp.raise_for_status()
     data = resp.json()
-    # SIDRA returns a list of dicts where first row is header metadata; convert to DataFrame
-    # The JSON format often is a list of dicts with keys corresponding to variables.
-    # If structure is different, user should inspect resp.json() and adapt.
-    try:
-        df = pd.DataFrame(data)
-    except Exception:
-        # If not a clean table, return empty df
-        df = pd.DataFrame()
-    return df
+    print("[INFO] Resposta recebida (tipo):", type(data).__name__)
+    if isinstance(data, list):
+        print("[INFO] Total itens:", len(data))
+    return data
 
-def extrair_sidra_populacao_2010(table_id: str = "1134", periodo: str = "2010") -> pd.DataFrame:
-    """
-    Extrai dados do SIDRA para o Censo 2010 usando sidrapy (nova API).
-    Caso sidrapy não esteja disponível, usa fallback via requests.
-    """
-    if _HAVE_SIDRA:
-        print(f">> SIDRA: usando sidrapy para tabela {table_id} periodo {periodo}")
 
-        df = sidra.get_table(
-            table_code=table_id,
-            territorial_level="1",            # 1 = Brasil; 2 = UF; 6 = município
-            ibge_territorial_code="all",      # all = todos os códigos do nível
-            variable="all",                   # todas as variáveis
-            period=periodo                    # ex: "2010"
+def sidra_raw_table(
+    table_id: str = "1383",
+    period: str = "2010",
+    territorial_level: Optional[str] = "6",          # 6 = município
+    ibge_territorial_code: Optional[str] = "all",    # todos os municípios
+    variable: Optional[str] = "all",                 # todas as variáveis
+    geo: Optional[str] = "5565",
+    use_sidrapy_if_available: bool = True,
+) -> RawSidra:
+    """
+    Retorna os dados BRUTOS da tabela SIDRA solicitada.
+    Padrão ajustado para:
+      - tabela 1383
+      - ano 2010
+      - nível territorial 6 (município)
+      - todos os códigos IBGE
+    Nenhuma transformação é feita nos dados.
+    """
+    print("\n=== INICIANDO EXTRAÇÃO SIDRA ===")
+    print(f"[INFO] Tabela: {table_id}")
+    print(f"[INFO] Período: {period}")
+    print(f"[INFO] territorial_level: {territorial_level}")
+    print(f"[INFO] ibge_territorial_code: {ibge_territorial_code}")
+    print(f"[INFO] variable: {variable}")
+    print(f"[INFO] geo (para API REST): {geo}")
+    print(f"[INFO] sidrapy disponível: {_HAVE_SIDRA}")
+
+    if use_sidrapy_if_available and _HAVE_SIDRA:
+        print("[INFO] Usando sidrapy.get_table(...)")
+
+        # Garantir defaults mínimos
+        territorial_level = territorial_level or "6"
+        ibge_territorial_code = ibge_territorial_code or "all"
+        variable = variable or "all"
+
+        print(
+            "[INFO] Parâmetros passados para sidrapy:",
+            {
+                "table_code": table_id,
+                "territorial_level": territorial_level,
+                "ibge_territorial_code": ibge_territorial_code,
+                "variable": variable,
+                "period": period,
+            },
         )
 
-        # sidrapy retorna LISTA de DICTS -> converter para DataFrame
-        return pd.DataFrame(df)
+        # Aqui passamos TODOS os argumentos obrigatórios
+        data = sidra.get_table(
+            table_code=table_id,
+            territorial_level=territorial_level,
+            ibge_territorial_code=ibge_territorial_code,
+            variable=variable,
+            period=period,
+        )
+        print("[INFO] Dados retornados pelo sidrapy (lista/dict cru).")
+        return data
 
+    print("[INFO] sidrapy não disponível ou desabilitado — usando requests.")
+    return _sidra_get_table_with_requests(
+        table_id=table_id,
+        period=period,
+        variables=variable,
+        geo=geo,
+    )
+
+
+def _print_sample(raw: RawSidra, sample: int = 3) -> None:
+    """Imprime amostra legível do JSON cru retornado."""
+    print("\n=== AMOSTRA DOS DADOS BRUTOS ===")
+    if isinstance(raw, list):
+        print(f"[INFO] Lista com {len(raw)} itens. Mostrando primeiros {sample}:")
+        print(json.dumps(raw[:sample], indent=2, ensure_ascii=False))
+    elif isinstance(raw, dict):
+        print("[INFO] Dict recebido. Exibindo chaves top-level e conteúdo (parcial):")
+        keys = list(raw.keys())
+        print("Chaves:", keys)
+        to_show = {k: raw[k] for k in keys[:3]}
+        print(json.dumps(to_show, indent=2, ensure_ascii=False))
     else:
-        print(f">> SIDRA: sidrapy não disponível, usando requests para tabela {table_id} periodo {periodo}")
-        time.sleep(0.5)
-        return _sidra_get_table_with_requests(table_id, period=periodo)
+        print("[INFO] Tipo inesperado:", type(raw))
+        print(raw)
 
-def normalize_sidra_df(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Normaliza colunas do DataFrame SIDRA para o padrão:
-    ano, sigla_uf, grupo_idade, raca_cor, total_mulheres
-    Esse mapeamento depende do retorno da tabela sidra escolhida.
-    Ajuste conforme o seu caso.
-    """
-    df = df.copy()
-    # Tenta detectar colunas comuns e mapear
-    col_map = {}
 
-    # Possíveis colunas: 'V001' (valor), 'D1C' or 'Município' etc.
-    # Exemplo: se existir 'UF' -> 'sigla_uf'
-    for c in df.columns:
-        cl = c.lower()
-        if cl in ("uf", "unidade da federação", "coduf", "sigla_uf"):
-            col_map[c] = "sigla_uf"
-        if "idade" in cl or "faixa" in cl:
-            col_map[c] = "grupo_idade"
-        if "sexo" in cl:
-            col_map[c] = "sexo"
-        if "cor" in cl or "raça" in cl or "raca" in cl:
-            col_map[c] = "raca_cor"
-        # Valor: muitas tabelas SIDRA usam 'V1' ou 'V001' ou 'Valor'
-        if cl.startswith("v") and cl.lstrip("v").isdigit():
-            col_map[c] = "total"
-        if cl in ("valor", "valor (pessoas)", "V001"):
-            col_map[c] = "total"
+# -------------------------------------------------------------------------
+# EXECUÇÃO DIRETA PELO TERMINAL
+# -------------------------------------------------------------------------
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Teste de extração bruta SIDRA (tabela 1383 por padrão)."
+    )
+    parser.add_argument("--table", "-t", default="1383", help="ID da tabela SIDRA (padrão 1383).")
+    parser.add_argument("--period", "-p", default="2010", help="Período/ano (ex: 2010).")
+    parser.add_argument(
+        "--tl",
+        "--territorial-level",
+        dest="territorial_level",
+        default="6",
+        help="Nível territorial (1=Brasil, 2=UF, 6=município; padrão 6).",
+    )
+    parser.add_argument(
+        "--code",
+        "--ibge-code",
+        dest="ibge_code",
+        default="all",
+        help="Código territorial IBGE (padrão 'all').",
+    )
+    parser.add_argument(
+        "--geo",
+        "-g",
+        default="5565",
+        help="Parâmetro 'g' da API REST (usado no fallback via requests).",
+    )
+    parser.add_argument(
+        "--no-sidrapy",
+        action="store_true",
+        help="Forçar uso do fallback requests mesmo se sidrapy estiver disponível.",
+    )
+    parser.add_argument(
+        "--sample",
+        "-s",
+        type=int,
+        default=3,
+        help="Quantos itens mostrar na amostra (padrão 3).",
+    )
+    args = parser.parse_args()
 
-    # Aplica o rename
-    df = df.rename(columns=col_map)
+    print("\n=== TESTE RÁPIDO: EXTRAÇÃO BRUTA SIDRA ===")
+    print("Observação: este script NÃO faz nenhuma transformação nos dados (raw JSON).")
 
-    # Se não tiver coluna 'sexo' mas tiver nome 'Sexo' com valores 'Mulheres', etc.,
-    # isso já mapeado acima. Filtra sexo feminino (ajuste se necessário)
-    if "sexo" in df.columns:
-        df = df[df["sexo"].astype(str).str.lower().str.contains("mulher|f", na=False)]
-
-    # Adiciona ano
-    if "Ano" in df.columns:
-        df["ano"] = df["Ano"]
-    elif "ano" not in df.columns:
-        # se não houver, inferir do período (padrão 2010)
-        df["ano"] = 2010
-
-    # Garante colunas esperadas
-    if "total" in df.columns:
-        df["total_mulheres"] = pd.to_numeric(df["total"], errors="coerce").fillna(0).astype(int)
-    elif "V001" in df.columns:
-        df["total_mulheres"] = pd.to_numeric(df["V001"], errors="coerce").fillna(0).astype(int)
-    else:
-        # se não achou total, tenta todas as colunas numéricas
-        nums = df.select_dtypes(include=["number"]).columns
-        if len(nums) > 0:
-            df["total_mulheres"] = df[nums[0]].fillna(0).astype(int)
-        else:
-            df["total_mulheres"] = 0
-
-    # Garantir sigla_uf e grupo_idade e raca_cor
-    for col in ["sigla_uf", "grupo_idade", "raca_cor"]:
-        if col not in df.columns:
-            df[col] = pd.NA
-
-    return df[["ano", "sigla_uf", "grupo_idade", "raca_cor", "total_mulheres"]]
+    try:
+        raw = sidra_raw_table(
+            table_id=args.table,
+            period=args.period,
+            territorial_level=args.territorial_level,
+            ibge_territorial_code=args.ibge_code,
+            variable="all",
+            geo=args.geo,
+            use_sidrapy_if_available=not args.no_sidrapy,
+        )
+        _print_sample(raw, sample=args.sample)
+    except Exception as exc:
+        print("\n[ERRO] Falha durante a extração SIDRA:")
+        print(type(exc).__name__, exc)
