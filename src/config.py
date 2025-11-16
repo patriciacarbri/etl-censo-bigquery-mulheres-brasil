@@ -2,16 +2,22 @@ import os
 from dotenv import load_dotenv
 from pathlib import Path
 
+"""
+Configurações do projeto, carregando variáveis de ambiente e definindo diretórios.
+
+"""
+
 # Carrega o .env da raiz
 ROOT_DIR = Path(__file__).resolve().parents[1]
 ENV_PATH = ROOT_DIR / ".env"
 load_dotenv(ENV_PATH)
 
+# Variáveis do Bigquery
 GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID")
-BQ_DATASET_2010 = os.getenv("BQ_DATASET_2010")
 BQ_DATASET_2022 = os.getenv("BQ_DATASET_2022")
 GOOGLE_APPLICATION_CREDENTIALS = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 
+# Diretórios de dados
 DATA_DIR = ROOT_DIR / "data"
 RAW_DIR = DATA_DIR / "raw"
 TRUSTED_CSV_DIR = DATA_DIR / "trusted" / "csv"
