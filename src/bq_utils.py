@@ -61,6 +61,7 @@ def load_sql(path: Path, **params) -> str:
 # ---------------------------------------------------------
 # Salvar o resultado de query em CSV
 # ---------------------------------------------------------
+
 def query_to_csv(
     sql_path: Path,
     out_path: Path,
@@ -71,7 +72,14 @@ def query_to_csv(
     timeout: int = 300,
     poll_interval: int = 5,
     page_size: int = 5000,
+    force_materialize_when_none: bool = True,
 ):
+    """
+    Executa a query e salva em CSV.
+    - Se BigQuery gravar em tabela (job.destination), usa streaming via list_rows.
+    - Se não (job.destination is None), tenta job.to_dataframe() (rápido, mas usa memória).
+    - Se force_materialize_when_none=True e job.destination is None, cria tabela temporária no dataset BQ_DATASET_2022.
+    """
     print(f"[INFO] Iniciando query_to_csv para ano={ano}")
 
     sql = load_sql(
@@ -106,60 +114,103 @@ def query_to_csv(
         traceback.print_exc()
         raise
 
-    # Polling
-    import time
-    start = time.time()
-
-    while True:
-        if job.done():
-            print(f"[INFO] Job concluído. State={job.state}")
-            break
-
-        elapsed = int(time.time() - start)
-        if elapsed > timeout:
-            raise TimeoutError(f"Tempo excedido: {timeout}s")
-
-        print(f"[INFO] Aguardando job... {elapsed}s (id={job.job_id})")
-        time.sleep(poll_interval)
-
-    # Recuperar tabela destino
-    print("[INFO] Obtendo tabela destino do job...")
+    # Espera job terminar
     try:
-        table = client.get_table(job.destination)
-    except Exception:
-        print("[ERRO] job.destination é None — BigQuery não materializou o resultado.")
+        job.result(timeout=timeout)  # bloqueia até conclusão ou timeout
+        print(f"[INFO] Job concluído. State={job.state}")
+    except Exception as exc:
+        print("[ERRO] Job falhou ou excedeu timeout ao aguardar o resultado:")
+        traceback.print_exc()
         raise
 
-    print(f"[INFO] Tabela destino: {table.full_table_id}")
-    print(f"[INFO] Linhas estimadas: {table.num_rows}")
+    # Se job.destination estiver disponível, recupera via streaming
+    try:
+        if job.destination:
+            print("[INFO] job.destination disponível. Obtendo tabela destino...")
+            table = client.get_table(job.destination)
+            print(f"[INFO] Tabela destino: {table.full_table_id}")
+            print(f"[INFO] Linhas estimadas: {table.num_rows}")
 
-    # Criar CSV por streaming
-    out_path = Path(out_path)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    print(f"[INFO] Gravando CSV em: {out_path}")
+            out_path = Path(out_path)
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            writer = None
+            total = 0
 
-    writer = None
-    total = 0
+            rows_iter = client.list_rows(table, page_size=page_size)
+            for page in rows_iter.pages:
+                batch = list(page)
+                if not batch:
+                    break
+                df_chunk = pd.DataFrame([dict(row) for row in batch])
+                if total == 0:
+                    df_chunk.to_csv(out_path, index=False, mode="w")
+                else:
+                    df_chunk.to_csv(out_path, index=False, mode="a", header=False)
+                total += len(df_chunk)
+                print(f"[INFO] Escrevendo... total={total} linhas")
 
-    rows_iter = client.list_rows(table, page_size=page_size)
-    for page in rows_iter.pages:
-        batch = list(page)
-        if not batch:
-            break
+            print(f"[INFO] Finalizado. Total de linhas gravadas: {total}")
+            print(f"[INFO] Arquivo salvo: {out_path}")
+            return
 
-        # Para evitar montar DataFrame gigante na memória, processa em pedaços
-        df_chunk = pd.DataFrame([dict(row) for row in batch])
+        # Fallback 1: job.destination é None -> tentar job.to_dataframe()
+        print("[INFO] job.destination é None — tentando job.to_dataframe() (fallback).")
+        try:
+            df = job.to_dataframe()
+            out_path = Path(out_path)
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            df.to_csv(out_path, index=False)
+            print(f"[INFO] Resultados salvos via DataFrame em: {out_path} (linhas={len(df)})")
+            return
+        except Exception as exc_df:
+            print("[WARN] job.to_dataframe() falhou:", type(exc_df).__name__, exc_df)
+            # prossegue para tentar materializar em tabela, se permitido
 
-        if total == 0:
-            df_chunk.to_csv(out_path, index=False, mode="w")
-        else:
-            df_chunk.to_csv(out_path, index=False, mode="a", header=False)
+        # Fallback 2: forçar gravação em tabela temporária (evita uso de muita memória)
+        if force_materialize_when_none:
+            import time
+            tmp_table_id = f"tmp_query_{int(time.time())}"
+            destination = f"{GCP_PROJECT_ID}.{BQ_DATASET_2022}.{tmp_table_id}"
+            print(f"[INFO] Tentando materializar em tabela temporária: {destination}")
 
-        total += len(df_chunk)
-        print(f"[INFO] Escrevendo... total={total} linhas")
+            job_config = bigquery.QueryJobConfig()
+            job_config.destination = destination
+            job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
 
-    print(f"[INFO] Finalizado. Total de linhas gravadas: {total}")
-    print(f"[INFO] Arquivo salvo: {out_path}")
+            # Re-enviar a query com job_config
+            job2 = client.query(sql, job_config=job_config)
+            job2.result(timeout=timeout)
+            print(f"[INFO] Job2 concluído. destination={job2.destination}")
+
+            table = client.get_table(job2.destination)
+            out_path = Path(out_path)
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+
+            total = 0
+            rows_iter = client.list_rows(table, page_size=page_size)
+            for page in rows_iter.pages:
+                batch = list(page)
+                if not batch:
+                    break
+                df_chunk = pd.DataFrame([dict(row) for row in batch])
+                if total == 0:
+                    df_chunk.to_csv(out_path, index=False, mode="w")
+                else:
+                    df_chunk.to_csv(out_path, index=False, mode="a", header=False)
+                total += len(df_chunk)
+                print(f"[INFO] Escrevendo... total={total} linhas")
+
+            print(f"[INFO] Finalizado. Total de linhas gravadas: {total}")
+            print(f"[INFO] Arquivo salvo: {out_path}")
+            
+            return
+
+        raise RuntimeError("Não foi possível recuperar resultados do job (job.destination is None).")
+
+    except Exception:
+        print("[ERRO] Falha final ao recuperar resultados do job:")
+        traceback.print_exc()
+        raise
 
 
 # ---------------------------------------------------------

@@ -17,7 +17,7 @@ GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID")
 BQ_DATASET_2022 = os.getenv("BQ_DATASET_2022")
 GOOGLE_APPLICATION_CREDENTIALS = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 
-# Diretórios de dados
+# Pasta de dados
 DATA_DIR = ROOT_DIR / "data"
 RAW_DIR = DATA_DIR / "raw"
 TRUSTED_CSV_DIR = DATA_DIR / "trusted" / "csv"

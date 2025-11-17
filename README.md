@@ -2,8 +2,8 @@
 
 Este projeto implementa um pipeline ETL que:
 
-1. Consulta o Censo 2022 no BigQuery.
-2. Filtra a população feminina.
+1. Consulta o Censo 2022 no BigQuery 
+2. Consulta no Sidra via biblioteca.
 3. Agrega por UF, grupo de idade e raça/cor.
 4. Consolida em um único dataset.
 5. Salva os resultados em CSV e Parquet.
