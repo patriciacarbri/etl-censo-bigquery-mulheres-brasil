@@ -1,55 +1,137 @@
-from pathlib import Path
+#!/usr/bin/env python3
+# src/extracao.py
+"""
+Orquestrador simples e objetivo (pt-BR).
+- Quando --all é usado, usa por padrão sql/populacao_mulheres_2022.sql para a etapa BQ, se existir.
+- Mantém comportamento claro: --inep, --sidra, --bq.
+Uso:
+    python src/extracao.py --all
+    python src/extracao.py --bq --sql sql/populacao_mulheres_2022.sql --out data/raw/bq.csv
+"""
+
 import argparse
-from src.sidra_utils import sidra_raw_table
-from src.bq_utils import query_to_csv
+import sys
+from pathlib import Path
 
-
-def run_sidra(out_path: Path):
-    print("[SIDRA] Iniciando...")
+# tenta importar módulos locais (assume nomes em src/)
+try:
+    from src import inep_download as inep_mod
+except Exception:
     try:
-        dados = sidra_raw_table(
-            table_id="1383",
-            period="2010",
-            territorial_level="6",
-            ibge_territorial_code="all",
-            variable="all",
-            geo="5565",
-            use_sidrapy_if_available=True,
-        )
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_text(str(dados), encoding="utf-8")
-        print(f"[SIDRA] OK → {out_path}")
-    except Exception as e:
-        print("[SIDRA] ERRO:", e)
+        import inep_download as inep_mod
+    except Exception:
+        inep_mod = None
 
-
-def run_bigquery(sql_path: Path, out_path: Path, ano: str):
-    print("[BQ] Iniciando...")
+try:
+    from src import sidra_utils as sidra_mod
+except Exception:
     try:
-        query_to_csv(
-            sql_path=sql_path,
-            out_path=out_path,
-            ano=ano,
-            show_sql=False,
-            dry_run=False,
-            limit=None,
-        )
-        print(f"[BQ] OK → {out_path}")
-    except Exception as e:
-        print("[BQ] ERRO:", e)
+        import sidra_utils as sidra_mod
+    except Exception:
+        sidra_mod = None
 
+try:
+    from src import bq_utils as bq_mod
+except Exception:
+    try:
+        import bq_utils as bq_mod
+    except Exception:
+        bq_mod = None
+
+DEFAULT_SQL = Path("sql") / "populacao_mulheres_2022.sql"
+
+def run_inep():
+    if inep_mod is None:
+        print("[ERRO] modulo inep_download não encontrado. Verifique src/inep_download.py")
+        return 1
+    print("[OK] INEP: iniciando extração (microdados)...")
+    if hasattr(inep_mod, "main"):
+        inep_mod.main()
+        return 0
+    else:
+        # tenta executar arquivo como script
+        script_path = Path("src") / "inep_download.py"
+        if script_path.exists():
+            import runpy
+            runpy.run_path(str(script_path), run_name="__main__")
+            return 0
+        print("[ERRO] inep_download sem função main() e arquivo não encontrado.")
+        return 2
+
+def run_sidra():
+    if sidra_mod is None:
+        print("[ERRO] modulo sidra_utils não encontrado. Verifique src/sidra_utils.py")
+        return 1
+    print("[OK] SIDRA: iniciando extração (tabela exemplo)...")
+    # chama função pública conhecida ou falha com mensagem clara
+    if hasattr(sidra_mod, "baixar_sidra_1383"):
+        sidra_mod.baixar_sidra_1383()
+        return 0
+    # tenta função alternativa com nome genérico
+    if hasattr(sidra_mod, "main"):
+        sidra_mod.main()
+        return 0
+    print("[ERRO] sidra_utils não expõe função esperada (baixar_sidra_1383 ou main).")
+    return 2
+
+def run_bq(sql_path: Path, out_path: Path, ano="2022", limit=None, dry_run=False):
+    if bq_mod is None:
+        print("[ERRO] modulo bq_utils não encontrado. Verifique src/bq_utils.py")
+        return 1
+    if not sql_path or not sql_path.exists():
+        print(f"[ERRO] arquivo SQL não encontrado: {sql_path}")
+        return 2
+    print(f"[OK] BQ: executando query -> {out_path} (sql={sql_path})")
+    try:
+        # espera-se que bq_utils disponha de função query_to_csv(sql_path, out_path, ano, dry_run, limit)
+        if hasattr(bq_mod, "query_to_csv"):
+            bq_mod.query_to_csv(sql_path=sql_path, out_path=out_path, ano=ano, dry_run=dry_run, limit=limit)
+            return 0
+        else:
+            print("[ERRO] bq_utils não expõe query_to_csv(sql_path, out_path, ...).")
+            return 3
+    except Exception as e:
+        print("[ERRO] Falha ao executar bq_utils.query_to_csv():", e)
+        return 4
+
+def main(argv=None):
+    p = argparse.ArgumentParser(description="Orquestrador simples de extração (INEP, SIDRA, BQ).")
+    p.add_argument("--inep", action="store_true", help="Executa extração INEP (microdados).")
+    p.add_argument("--sidra", action="store_true", help="Executa extração SIDRA (exemplo).")
+    p.add_argument("--bq", action="store_true", help="Executa extração via BigQuery (usa --sql e --out ou default).")
+    p.add_argument("--all", action="store_true", help="Executa todas as extrações: inep + sidra + bq (usa default SQL se necessário).")
+    p.add_argument("--sql", help="Arquivo SQL para --bq (ex: sql/populacao_mulheres_2022.sql)")
+    p.add_argument("--out", help="Arquivo de saída para --bq (ex: data/raw/bq_2022.csv)", default="data/raw/bq_2022.csv")
+    p.add_argument("--ano", help="Ano para consultas (padrão 2022)", default="2022")
+    p.add_argument("--limit", type=int, help="Limit para testes", default=None)
+    p.add_argument("--dry-run", action="store_true", help="Se setado, não executa a query no BQ (apenas mostra SQL)")
+    args = p.parse_args(argv)
+
+    rc = 0
+
+    # Se --all e não foi passado --sql explicitamente, tenta DEFAULT_SQL
+    sql_path = Path(args.sql) if args.sql else None
+    if args.all and sql_path is None and DEFAULT_SQL.exists():
+        sql_path = DEFAULT_SQL
+        print(f"[INFO] --all: usando SQL padrão: {sql_path}")
+
+    # Executa as etapas conforme flags
+    if args.inep or args.all:
+        rc |= run_inep()
+    if args.sidra or args.all:
+        rc |= run_sidra()
+    if args.bq or args.all:
+        if sql_path is None:
+            print("[ERRO] Para executar BQ é necessário informar --sql <arquivo.sql> ou garantir sql/populacao_mulheres_2022.sql existe.")
+            return 5
+        out_path = Path(args.out)
+        rc |= run_bq(sql_path=sql_path, out_path=out_path, ano=args.ano, limit=args.limit, dry_run=args.dry_run)
+
+    if not (args.inep or args.sidra or args.bq or args.all):
+        print("Nada para fazer. Use --inep, --sidra, --bq ou --all. Exemplo: --all")
+        return 6
+
+    return rc
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Orquestra extração SIDRA + BigQuery.")
-
-    parser.add_argument("--sidra-out", default="data/raw/sidra_2010.json")
-    parser.add_argument("--bq-sql", default="sql/populacao_mulheres_2022.sql")
-    parser.add_argument("--bq-out", default="data/raw/bq_2022.csv")
-    parser.add_argument("--ano", default="2022")
-
-    args = parser.parse_args()
-
-    run_sidra(Path(args.sidra_out))
-    run_bigquery(Path(args.bq_sql), Path(args.bq_out), args.ano)
-
-    print("\n[FINALIZADO]")
+    sys.exit(main())

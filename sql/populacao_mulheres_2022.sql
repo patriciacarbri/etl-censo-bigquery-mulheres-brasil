@@ -43,7 +43,7 @@ GROUP BY
 ORDER BY
   j.id_municipio, j.cor_raca;
 
--- Consulta auxiliar para verificar populações totais por grupo de idade e sexo
+-- Consulta para verificar populações totais por grupo de idade e sexo agregados
 
 -- SELECT
 --   a.id_municipio,
