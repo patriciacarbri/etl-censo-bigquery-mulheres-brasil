@@ -1,0 +1,101 @@
+id_municipio,nome_municipio,sigla_uf,cor_raca,sexo,grupo_idade,alfabetizacao,populacao_total_grupo
+1300029,Alvarães,AM,Amarela,Homens,15 a 19 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Amarela,Homens,15 a 19 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Amarela,Mulheres,15 a 19 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Preta,Mulheres,15 a 19 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Amarela,Mulheres,15 a 19 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Branca,Mulheres,15 a 19 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Indígena,Mulheres,15 a 19 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Preta,Homens,15 a 19 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Branca,Homens,15 a 19 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Parda,Mulheres,15 a 19 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Indígena,Homens,15 a 19 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Preta,Mulheres,15 a 19 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Preta,Homens,15 a 19 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Parda,Homens,15 a 19 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Branca,Mulheres,15 a 19 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Branca,Homens,15 a 19 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Parda,Homens,15 a 19 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Parda,Mulheres,15 a 19 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Indígena,Mulheres,15 a 19 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Indígena,Homens,15 a 19 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Amarela,Homens,20 a 24 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Amarela,Mulheres,20 a 24 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Preta,Mulheres,20 a 24 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Amarela,Mulheres,20 a 24 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Branca,Mulheres,20 a 24 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Amarela,Homens,20 a 24 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Indígena,Homens,20 a 24 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Indígena,Mulheres,20 a 24 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Preta,Homens,20 a 24 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Branca,Homens,20 a 24 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Parda,Mulheres,20 a 24 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Parda,Homens,20 a 24 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Preta,Mulheres,20 a 24 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Preta,Homens,20 a 24 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Parda,Mulheres,20 a 24 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Branca,Mulheres,20 a 24 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Parda,Homens,20 a 24 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Branca,Homens,20 a 24 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Indígena,Homens,20 a 24 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Indígena,Mulheres,20 a 24 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Preta,Mulheres,25 a 34 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Amarela,Mulheres,25 a 34 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Amarela,Homens,25 a 34 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Amarela,Mulheres,25 a 34 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Amarela,Homens,25 a 34 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Preta,Homens,25 a 34 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Branca,Mulheres,25 a 34 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Indígena,Mulheres,25 a 34 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Branca,Homens,25 a 34 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Indígena,Homens,25 a 34 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Preta,Mulheres,25 a 34 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Parda,Mulheres,25 a 34 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Preta,Homens,25 a 34 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Parda,Homens,25 a 34 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Branca,Mulheres,25 a 34 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Parda,Mulheres,25 a 34 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Parda,Homens,25 a 34 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Branca,Homens,25 a 34 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Indígena,Mulheres,25 a 34 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Indígena,Homens,25 a 34 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Amarela,Homens,35 a 44 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Amarela,Mulheres,35 a 44 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Amarela,Homens,35 a 44 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Amarela,Mulheres,35 a 44 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Preta,Mulheres,35 a 44 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Preta,Homens,35 a 44 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Branca,Mulheres,35 a 44 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Branca,Homens,35 a 44 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Indígena,Mulheres,35 a 44 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Indígena,Homens,35 a 44 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Preta,Mulheres,35 a 44 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Preta,Homens,35 a 44 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Parda,Mulheres,35 a 44 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Branca,Mulheres,35 a 44 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Branca,Homens,35 a 44 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Parda,Mulheres,35 a 44 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Parda,Homens,35 a 44 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Parda,Homens,35 a 44 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Indígena,Mulheres,35 a 44 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Indígena,Homens,35 a 44 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Amarela,Homens,45 a 54 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Amarela,Mulheres,45 a 54 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Amarela,Mulheres,45 a 54 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Amarela,Homens,45 a 54 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Branca,Homens,45 a 54 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Preta,Mulheres,45 a 54 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Branca,Mulheres,45 a 54 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Preta,Homens,45 a 54 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Preta,Mulheres,45 a 54 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Indígena,Mulheres,45 a 54 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Indígena,Homens,45 a 54 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Preta,Homens,45 a 54 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Branca,Homens,45 a 54 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Branca,Mulheres,45 a 54 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Parda,Mulheres,45 a 54 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Indígena,Mulheres,45 a 54 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Parda,Homens,45 a 54 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Indígena,Homens,45 a 54 anos,Alfabetizadas,173
+1300029,Alvarães,AM,Parda,Mulheres,45 a 54 anos,Não alfabetizadas,173
+1300029,Alvarães,AM,Parda,Homens,45 a 54 anos,Alfabetizadas,173

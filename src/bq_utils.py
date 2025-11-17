@@ -4,16 +4,9 @@ from pathlib import Path
 import argparse
 import traceback
 from typing import Any, Optional
-
 import pandas as pd
 
-# Import da config com fallback
-try:
-    from src.config import GCP_PROJECT_ID, BQ_DATASET_2022
-except Exception:
-    from config import GCP_PROJECT_ID, BQ_DATASET_2022
-
-# BigQuery opcional
+# BigQuery
 try:
     from google.cloud import bigquery
     _HAVE_BQ = True
@@ -22,8 +15,17 @@ except Exception:
     _HAVE_BQ = False
 
 
+# Config (fallback para execução direta)
+try:
+    from src.config import GCP_PROJECT_ID, BQ_DATASET_2022
+except Exception:
+    from config import GCP_PROJECT_ID, BQ_DATASET_2022
+
+
+# ---------------------------------------------------------
+# CLIENTE BIGQUERY
+# ---------------------------------------------------------
 def get_bq_client() -> Any:
-    """Cria cliente BigQuery com prints para testes."""
     print("[INFO] Criando cliente BigQuery...")
 
     if not _HAVE_BQ:
@@ -37,8 +39,10 @@ def get_bq_client() -> Any:
     return client
 
 
+# ---------------------------------------------------------
+# CARREGAR SQL
+# ---------------------------------------------------------
 def load_sql(path: Path, **params) -> str:
-    """Carrega SQL e substitui {{chaves}}."""
     path = Path(path)
     print(f"[INFO] Lendo SQL: {path}")
 
@@ -46,25 +50,29 @@ def load_sql(path: Path, **params) -> str:
         raise FileNotFoundError(f"SQL não encontrado: {path}")
 
     sql = path.read_text(encoding="utf-8")
-
     print("[INFO] Aplicando parâmetros:", params)
+
     for key, value in params.items():
         sql = sql.replace(f"{{{{{key}}}}}", str(value))
 
     return sql
 
 
-def query_to_dataframe(
+# ---------------------------------------------------------
+# Salvar o resultado de query em CSV
+# ---------------------------------------------------------
+def query_to_csv(
     sql_path: Path,
+    out_path: Path,
     ano: str = "2022",
     show_sql: bool = False,
     dry_run: bool = False,
+    limit: Optional[int] = None,
     timeout: int = 300,
     poll_interval: int = 5,
-    limit: Optional[int] = None,
-) -> pd.DataFrame:
-
-    print(f"[INFO] Iniciando query_to_dataframe ano={ano}")
+    page_size: int = 5000,
+):
+    print(f"[INFO] Iniciando query_to_csv para ano={ano}")
 
     sql = load_sql(
         Path(sql_path),
@@ -74,7 +82,7 @@ def query_to_dataframe(
     )
 
     if limit:
-        print(f"[INFO] Aplicando LIMIT {limit} para teste.")
+        print(f"[INFO] Aplicando LIMIT {limit} (somente teste)")
         sql = sql.rstrip().rstrip(";") + f"\nLIMIT {limit}"
 
     if show_sql:
@@ -83,21 +91,22 @@ def query_to_dataframe(
         print("------------------------\n")
 
     if dry_run:
-        print("[INFO] Dry-run ativo. Nenhuma execução será feita.")
-        return pd.DataFrame({"sql": [sql]})
+        print("[INFO] Dry-run: Não executando. Apenas SQL carregado.")
+        print("SQL:\n", sql)
+        return
 
     client = get_bq_client()
 
     print("[INFO] Enviando query ao BigQuery...")
     try:
         job = client.query(sql)
-        print(f"[INFO] Job enviado. job_id={job.job_id}")
+        print(f"[INFO] Job enviado: job_id={job.job_id}")
     except Exception:
         print("[ERRO] Falha ao enviar job:")
         traceback.print_exc()
         raise
 
-    # Polling simples
+    # Polling
     import time
     start = time.time()
 
@@ -107,50 +116,86 @@ def query_to_dataframe(
             break
 
         elapsed = int(time.time() - start)
-
         if elapsed > timeout:
             raise TimeoutError(f"Tempo excedido: {timeout}s")
 
         print(f"[INFO] Aguardando job... {elapsed}s (id={job.job_id})")
         time.sleep(poll_interval)
 
-    print("[INFO] Convertendo resultado para DataFrame...")
-    df = job.to_dataframe()
+    # Recuperar tabela destino
+    print("[INFO] Obtendo tabela destino do job...")
+    try:
+        table = client.get_table(job.destination)
+    except Exception:
+        print("[ERRO] job.destination é None — BigQuery não materializou o resultado.")
+        raise
 
-    print("[INFO] DataFrame carregado:", df.shape)
-    print(df.head())
+    print(f"[INFO] Tabela destino: {table.full_table_id}")
+    print(f"[INFO] Linhas estimadas: {table.num_rows}")
 
-    return df
+    # Criar CSV por streaming
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    print(f"[INFO] Gravando CSV em: {out_path}")
+
+    writer = None
+    total = 0
+
+    rows_iter = client.list_rows(table, page_size=page_size)
+    for page in rows_iter.pages:
+        batch = list(page)
+        if not batch:
+            break
+
+        # Para evitar montar DataFrame gigante na memória, processa em pedaços
+        df_chunk = pd.DataFrame([dict(row) for row in batch])
+
+        if total == 0:
+            df_chunk.to_csv(out_path, index=False, mode="w")
+        else:
+            df_chunk.to_csv(out_path, index=False, mode="a", header=False)
+
+        total += len(df_chunk)
+        print(f"[INFO] Escrevendo... total={total} linhas")
+
+    print(f"[INFO] Finalizado. Total de linhas gravadas: {total}")
+    print(f"[INFO] Arquivo salvo: {out_path}")
 
 
-# ============================
-# Execução direta no terminal
-# ============================
+# ---------------------------------------------------------
+# EXECUÇÃO TESTE LOCAL
+# ---------------------------------------------------------
+# Para teste local rápido
+# python src/bq_utils.py --sql sql/populacao_mulheres_2022.sql
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Executor simples de SQL no BigQuery.")
+    parser = argparse.ArgumentParser(description="Executa SQL no BigQuery e salva resultado em CSV.")
     parser.add_argument("--sql", "-s", required=True, help="Arquivo SQL.")
+    parser.add_argument("--out", "-o", default="data/raw/bq_2022.csv", help="CSV de saída.")
     parser.add_argument("--ano", "-a", default="2022")
     parser.add_argument("--show-sql", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--timeout", type=int, default=300)
     parser.add_argument("--poll-interval", type=int, default=5)
-    parser.add_argument("--limit", type=int, default=None)
+    parser.add_argument("--page-size", type=int, default=5000)
 
     args = parser.parse_args()
 
-    print("\n=== Execução BigQuery ===")
+    print("\n=== Execução BigQuery → CSV ===")
 
     try:
-        df = query_to_dataframe(
+        query_to_csv(
             sql_path=args.sql,
+            out_path=args.out,
             ano=args.ano,
             show_sql=args.show_sql,
             dry_run=args.dry_run,
+            limit=args.limit,
             timeout=args.timeout,
             poll_interval=args.poll_interval,
-            limit=args.limit,
+            page_size=args.page_size,
         )
-        print("\n[OK] Execução finalizada. Shape:", df.shape)
     except Exception as exc:
         print("\n[ERRO FATAL]:", type(exc).__name__, exc)
         sys.exit(1)
