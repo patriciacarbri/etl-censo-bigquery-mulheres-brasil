@@ -3,7 +3,7 @@ import requests
 import zipfile
 import io
 import os
-import tempfile # Importa a biblioteca de arquivos temporários
+import tempfile
 
 # --- 1. Configuração ---
 
@@ -27,14 +27,14 @@ colunas_selecionadas = [
 ]
 
 # Caminho de saída
-output_dir = "data/trusted"
+output_dir = "data/raw"
 output_filename = "inep_MicrodadosEducaBasica2022.parquet"
 output_path = os.path.join(output_dir, output_filename)
 
 # --- 2. Execução ---
 
 print(f"Iniciando o processo...")
-zip_file_object = None # Para podermos listar os arquivos no erro
+zip_file_object = None # Para listar os arquivos no erro
 
 # Usa um gerenciador de contexto para o arquivo temporário
 # Ele será criado e excluído automaticamente
@@ -44,11 +44,11 @@ with tempfile.NamedTemporaryFile() as temp_zip_file:
         print(f"Baixando dados de {zip_url}...")
         
         with requests.get(zip_url, stream=True) as response:
-            # Lança um erro se o download falhar (ex: 404)
+            # Lança um erro se o download falhar
             response.raise_for_status()
             
             # Salva o arquivo em partes (chunks) no arquivo temporário
-            # Isso é robusto para arquivos grandes
+
             for chunk in response.iter_content(chunk_size=8192):
                 temp_zip_file.write(chunk)
         

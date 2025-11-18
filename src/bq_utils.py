@@ -22,9 +22,7 @@ except Exception:
     from config import GCP_PROJECT_ID, BQ_DATASET_2022
 
 
-# ---------------------------------------------------------
-# CLIENTE BIGQUERY
-# ---------------------------------------------------------
+# --- 1. CLIENTE BIGQUERY ---
 def get_bq_client() -> Any:
     print("[INFO] Criando cliente BigQuery...")
 
@@ -38,10 +36,8 @@ def get_bq_client() -> Any:
     print("[INFO] Cliente criado. Projeto:", GCP_PROJECT_ID)
     return client
 
+# --- 2. Carrega o SQL ---
 
-# ---------------------------------------------------------
-# CARREGAR SQL
-# ---------------------------------------------------------
 def load_sql(path: Path, **params) -> str:
     path = Path(path)
     print(f"[INFO] Lendo SQL: {path}")
@@ -57,10 +53,7 @@ def load_sql(path: Path, **params) -> str:
 
     return sql
 
-
-# ---------------------------------------------------------
-# Salvar o resultado de query em CSV
-# ---------------------------------------------------------
+# --- 3. Salvar o resultado de query em CSV ---
 
 def query_to_csv(
     sql_path: Path,

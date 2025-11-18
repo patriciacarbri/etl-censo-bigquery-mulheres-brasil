@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 # src/extracao.py
 """
-Orquestrador simples e objetivo (pt-BR).
-- Quando --all é usado, usa por padrão sql/populacao_mulheres_2022.sql para a etapa BQ, se existir.
-- Mantém comportamento claro: --inep, --sidra, --bq.
+Orquestrador simples e objetivo para extração de dados.
+
 Uso:
     python src/extracao.py --all
     python src/extracao.py --bq --sql sql/populacao_mulheres_2022.sql --out data/raw/bq.csv
@@ -13,7 +12,9 @@ import argparse
 import sys
 from pathlib import Path
 
-# tenta importar módulos locais (assume nomes em src/)
+
+# --- 1. Importa módulos locais (assume nomes em src/) ---
+
 try:
     from src import inep_download as inep_mod
 except Exception:
@@ -40,6 +41,7 @@ except Exception:
 
 DEFAULT_SQL = Path("sql") / "populacao_mulheres_2022.sql"
 
+
 def run_inep():
     if inep_mod is None:
         print("[ERRO] modulo inep_download não encontrado. Verifique src/inep_download.py")
@@ -63,7 +65,7 @@ def run_sidra():
         print("[ERRO] modulo sidra_utils não encontrado. Verifique src/sidra_utils.py")
         return 1
     print("[OK] SIDRA: iniciando extração (tabela exemplo)...")
-    # chama função pública conhecida ou falha com mensagem clara
+    # chama função pública conhecida ou falha
     if hasattr(sidra_mod, "baixar_sidra_1383"):
         sidra_mod.baixar_sidra_1383()
         return 0
@@ -83,7 +85,7 @@ def run_bq(sql_path: Path, out_path: Path, ano="2022", limit=None, dry_run=False
         return 2
     print(f"[OK] BQ: executando query -> {out_path} (sql={sql_path})")
     try:
-        # espera-se que bq_utils disponha de função query_to_csv(sql_path, out_path, ano, dry_run, limit)
+        # bq_utils dispõe função query_to_csv
         if hasattr(bq_mod, "query_to_csv"):
             bq_mod.query_to_csv(sql_path=sql_path, out_path=out_path, ano=ano, dry_run=dry_run, limit=limit)
             return 0
@@ -93,6 +95,8 @@ def run_bq(sql_path: Path, out_path: Path, ano="2022", limit=None, dry_run=False
     except Exception as e:
         print("[ERRO] Falha ao executar bq_utils.query_to_csv():", e)
         return 4
+
+# --- 3. Executa  ---
 
 def main(argv=None):
     p = argparse.ArgumentParser(description="Orquestrador simples de extração (INEP, SIDRA, BQ).")
