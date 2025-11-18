@@ -1,3 +1,5 @@
+# src/tratamento_limpeza.py
+
 import pandas as pd
 import os
 
@@ -10,20 +12,15 @@ def salvar_dataframe(df, nome_arquivo, output_dir=OUTPUT_DIR):
         print(f"AVISO: O DataFrame para {nome_arquivo} está vazio e não será salvo.")
         return
         
-    # 1. Garante que o diretório de saída exista
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
         
-    # 2. Define o caminho completo do arquivo
     caminho_saida = os.path.join(output_dir, nome_arquivo + '.parquet')
-    
-    # 3. Salva como Parquet
     df.to_parquet(caminho_saida, index=False)
     print(f"DataFrame '{nome_arquivo}' salvo em: {caminho_saida}")
 
 
 ## FUNÇÕES DE TRATAMENTO 
-
 def tratar_big_query():
     """Importa o arquivo CSV, converte colunas de população para Int64."""
     print("\n--- Processando Big Query (df_bq) ---")
@@ -35,9 +32,7 @@ def tratar_big_query():
         return None
     
     colunas_para_converter = [
-        'populacao_homens',
-        'populacao_mulheres',
-        'populacao_total'
+        'populacao_homens', 'populacao_mulheres', 'populacao_total'
     ]
     
     for coluna in colunas_para_converter:
@@ -56,7 +51,6 @@ def tratar_sidra():
         print(f"ERRO: Arquivo não encontrado em {caminho_dados}")
         return None
     
-    # Limpa a primeira linha (índice 0)
     df2.drop(0, axis=0, inplace=True)
     df2.reset_index(drop=True, inplace=True)
     
@@ -74,12 +68,9 @@ def tratar_inep():
         return None
     
     linhas_originais = len(df3)
-    
-    # Remove todas as linhas com dados nulos
     df3_limpo = df3.dropna(how='any')
     linhas_removidas = linhas_originais - len(df3_limpo)
     
-    # Renomea a coluna
     df3_limpo = df3_limpo.rename(columns={'CO_MUNICIPIO': 'id_municipio'})
     
     print(f"Linhas removidas devido a Nulos: {linhas_removidas}")
@@ -88,19 +79,26 @@ def tratar_inep():
 
 
 # ====================================================================
-## EXECUÇÃO DO SCRIPT E SALVAMENTO
+## FUNÇÃO DE ORQUESTRAÇÃO LOCAL
 # ====================================================================
 
-# 1. Executa as funções de tratamento
-df_bq = tratar_big_query()
-df_sidra = tratar_sidra()
-df_inep = tratar_inep()
+def run_tratamento_limpeza():
+    """Orquestra o tratamento, limpeza e salvamento dos DataFrames."""
+    
+    # 1. Executa as funções de tratamento
+    df_bq = tratar_big_query()
+    df_sidra = tratar_sidra()
+    df_inep = tratar_inep()
 
-print("\n" + "="*30)
-print("INICIANDO SALVAMENTO DOS ARQUIVOS LIMPOS")
-print("="*30)
+    print("\n" + "="*30)
+    print("INICIANDO SALVAMENTO DOS ARQUIVOS LIMPOS")
+    print("="*30)
+    
+    # 2. Salva cada DataFrame tratado
+    salvar_dataframe(df_bq, 'bq_2022_trusted')
+    salvar_dataframe(df_sidra, 'sidra_2010_trusted')
+    salvar_dataframe(df_inep, 'inep_2022_trusted')
 
-# 2. Salva cada DataFrame tratado
-salvar_dataframe(df_bq, 'bq_2022_trusted')
-salvar_dataframe(df_sidra, 'sidra_2010_trusted')
-salvar_dataframe(df_inep, 'inep_2022_trusted')
+
+if __name__ == "__main__":
+    run_tratamento_limpeza()
