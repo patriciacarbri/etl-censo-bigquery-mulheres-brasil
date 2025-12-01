@@ -22,23 +22,14 @@ def salvar_dataframe(df, nome_arquivo, output_dir=OUTPUT_DIR):
 
 ## FUNÇÕES DE TRATAMENTO 
 def tratar_big_query():
-    """Importa o arquivo CSV, converte colunas de população para Int64."""
-    print("\n--- Processando Big Query (df_bq) ---")
+    """Importa o arquivo CSV e retorna o DataFrame sem alterações."""
     caminho_dados = 'data/raw/bq_2022.csv'
     try:
         df = pd.read_csv(caminho_dados)
     except FileNotFoundError:
         print(f"ERRO: Arquivo não encontrado em {caminho_dados}")
         return None
-    
-    colunas_para_converter = [
-        'populacao_homens', 'populacao_mulheres', 'populacao_total'
-    ]
-    
-    for coluna in colunas_para_converter:
-        df[coluna] = df[coluna].astype('Int64')
 
-    print("Conversão de tipos concluída.")
     return df
 
 def tratar_sidra():
@@ -95,7 +86,7 @@ def run_tratamento_limpeza():
     print("="*30)
     
     # 2. Salva cada DataFrame tratado
-    salvar_dataframe(df_bq, 'bq_2022_trusted')
+    salvar_dataframe(df_bq, 'censo_2022_trusted')
     salvar_dataframe(df_sidra, 'sidra_2010_trusted')
     salvar_dataframe(df_inep, 'inep_2022_trusted')
 
